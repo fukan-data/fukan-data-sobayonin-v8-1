@@ -1,0 +1,48 @@
+<html>
+
+<head>
+{% block import_common %}
+{% endblock %}
+
+{% block import_each %}
+{% endblock %}
+
+{% block meta_common %}
+{% endblock %}
+
+{% block meta_each %}
+{% endblock %}
+</head>
+
+<body id="page-top">
+{% csrf_token %}
+
+<div id="wrapper">
+{% block side %}
+{% endblock %}
+
+<div id="content-wrapper" class="d-flex flex-column">
+<div id="content">
+{% block navigation %}
+{% endblock %}
+
+{% block content %}
+{% endblock %}
+</div>
+
+{% block footer %}
+{% endblock %}
+</div>
+</div>
+
+{% block page_top %}
+{% endblock %}
+
+{% block modal %}
+{% endblock %}
+
+{% block script_body %}
+{% endblock %}
+</body>
+
+</html>
