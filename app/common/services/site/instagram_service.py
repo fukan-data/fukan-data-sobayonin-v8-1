@@ -1,6 +1,8 @@
 import os
 from selenium.webdriver.common.keys import Keys
+import random
 from time import sleep
+import urllib.parse
 
 from common.consts.instagram import INSTAGRAM
 from common.enums.status import Status
@@ -10,6 +12,13 @@ from common.services.components.system_exception import SystemException
 from common.services.components.decorator import retry as custom_retry
 from common.services.google.big_query import BigQueryService
 
+from common.services.google.spread_sheet_service import SpreadSheetService
+
+
+from selenium.webdriver.common.action_chains import ActionChains
+
+
+
 
 class InstagramService(CommonService):
     def __init__(self, logger=None, **kwargs):
@@ -17,6 +26,7 @@ class InstagramService(CommonService):
         self.logger = self.get_logger() if logger is None else logger
         self.selemium = SeleniumService()
         self.big_query = BigQueryService(logger=self.logger)
+        self.spread_sheet = SpreadSheetService(logger=self.logger)
 
     @custom_retry(delay=1, tries=3, close_driver=1)
     def login(self, driver):
@@ -25,6 +35,7 @@ class InstagramService(CommonService):
 
         # ブラウザがログイン状態ならdriverを返して終了
         if driver.current_url == INSTAGRAM.URL.BASE_URL:
+            self.__close_dialog(driver)
             return
 
         # ログイン username
@@ -48,6 +59,7 @@ class InstagramService(CommonService):
         if INSTAGRAM.URL.LOGIN_AFTER_URL not in driver.current_url:
             raise SystemException(status=Status.FAIL_TO_LOGIN, message='パスワードが異なっている可能性があります。', tries=3)
 
+        self.__close_dialog(driver)
         return
 
     # @custom_retry(delay=1, tries=3, close_driver=1)
@@ -110,6 +122,177 @@ class InstagramService(CommonService):
 
             table_id = ''
             self.big_query.insert_rows(table_id=table_id, rows=rows)
+
+    def __goto_next(self, driver):
+        # 次へ
+        xpath_next = '//div[@role="dialog"]//button//*[name()="svg"][@aria-label="次へ"]/../../..'
+        element_next = self.selemium.get_element_with_wait(driver, xpath_next)
+        element_next.click()
+        sleep(2 + (2 * random.random()))
+
+    def __close_dialog(self, driver):
+        try:
+            xpath_next = '//*[@role="dialog"]//button[contains(text(), "後で")]'
+            element_next = driver.find_element_by_xpath(xpath_next)
+            element_next.click()
+            self.logger.info('End of close_dialog')
+        except Exception as e:
+            self.logger.info('No dialog')
+
+    def __get_page_id(self, url):
+        url_splits = url.replace('https://www.instagram.com/', '').split('/')
+
+        # case: https://www.instagram.com/p/CfRS4Fsrn4l/
+        if url_splits[0] == 'p':
+            return url_splits[1]
+        else:
+            return None
+
+    # @custom_retry(delay=1, tries=3, close_driver=1)
+    def search_tag(self, driver, key_word, select_hash_list, max_count):
+        # キーワードのページへ遷移
+        key_word_quote = urllib.parse.quote(key_word)
+        driver.get('https://www.instagram.com/explore/tags/' + key_word_quote + '/')
+
+        # wait untilの実装が必要
+        xpath_h1 = '//section//h1'
+        self.selemium.wait_until(driver, xpath_h1)
+
+        # 投稿内容の一覧を取得
+        xpath_a_throw = '//a[@role="link"]'
+        element_a_throw = self.selemium.get_element_with_wait(driver, xpath_a_throw)
+        element_a_throw.click()
+        sleep(2)
+
+        # スプレッドシートへの記録
+        sheet_id = '1Ni5JzhqCNdLTSW-izJzRh92VGPzPZRGuVlBpUl1p9bE'
+        # sheet_name = '20220626'
+        sheet_name = '20220703'
+        sheet_range = 'A:G'
+        sheet_records = self.spread_sheet.get_values(sheet_id, sheet_name, sheet_range)
+
+        sheet_info = {}
+        for record in sheet_records.data['values']:
+            if record[0] != '取得元' and record[0] != 'error':
+                try:
+                    sheet_info[self.__get_page_id(record[4])] = {
+                        'count': int(record[1]) if record[1] else 0,
+                        'error': True if record[5] == '' else False
+                    }
+                except Exception as e:
+                    print('Error: ', record)
+
+        # 繰り返しする
+        count = 0
+        while count < max_count:
+            try:
+                scrape_count = 1
+
+                # シートの中に既存のurlがある場合
+                page_id = self.__get_page_id(driver.current_url)
+                if page_id in sheet_info:
+                    thrower_info = sheet_info[page_id]
+                    # エラーかつ3回以内なら再実行
+                    if (thrower_info['error'] and thrower_info['count'] < 3):
+                        scrape_count = int(thrower_info['count']) + 1
+                    else:
+                        self.__goto_next(driver)
+                        continue
+
+                # 投稿者
+                thrower = ''
+                xpath_header = '//article//header//a[@role="link"]'
+                for element_header in self.selemium.get_element_with_wait(element_a_throw, xpath_header, is_multiple=True):
+                    if not thrower:
+                        thrower = element_header.text
+
+                # ハッシュを取得する
+                hash_list = []
+                xpath_hash = '//a[contains(text(), "#")]'
+                for element_hash in self.selemium.get_element_with_wait(element_a_throw, xpath_hash, is_multiple=True):
+                    hash_list.append(element_hash.text)
+
+                # ハッシュタグがselect_hash_listに存在していれば、「いいね」の対象とする
+                is_like_target = False
+                for select_hash in select_hash_list:
+                    for hash in hash_list:
+                        if select_hash in hash:
+                            is_like_target = True
+                            break
+
+                # いいねの対象
+                like = ''
+                if is_like_target:
+                    xpath_like = '//article//section//button'
+                    element_like = self.selemium.get_element_with_wait(driver, xpath_like)
+                    element_like.click()
+                    like = 'いいね'
+
+                # スプレッドシートへの記録
+                values = [thrower, scrape_count, like, '', driver.current_url, ', '.join(hash_list)]
+                self.spread_sheet.append_row(sheet_id, sheet_name, values)
+
+                # 次へ
+                self.__goto_next(driver)
+
+                count += 1
+
+            except Exception as e:
+                # スプレッドシートへの記録
+                values = ['error', '', '', '', '', '', e.__str__()]
+                self.spread_sheet.append_row(sheet_id, sheet_name, values)
+
+    # @custom_retry(delay=1, tries=3, close_driver=1)
+    def search_followers(self, driver, page_name):
+        # キーワードのページへ遷移
+        driver.get('https://www.instagram.com/' + page_name + '/')
+
+        # wait untilの実装が必要
+        xpath_follower_link = '//header/section/ul/li/a'
+        self.selemium.wait_until(driver, xpath_follower_link)
+
+        # 投稿内容の一覧を取得
+        element_a_throw = self.selemium.get_element_with_wait(driver, xpath_follower_link)
+        element_a_throw.click()
+        sleep(2)
+
+        # フォロワーを取得
+        xpath_followers = '//*[@role="dialog"]//*[@role="dialog"]//ul//li//a/span'
+        followers = []
+        count_followers = -1
+        is_end = False
+
+        while not is_end:
+            for element_followers in self.selemium.get_element_with_wait(element_a_throw, xpath_followers, is_multiple=True):
+                followers.append(element_followers.text)
+            followers = list(set(followers))
+
+            if count_followers == len(followers):
+                is_end = True
+            count_followers = len(followers)
+
+            # フォロワーをスクロール
+            xpath_follower_scroll = '//*[@role="dialog"]//*[@role="dialog"]//ul/following-sibling::div'
+            element_follower_scroll = self.selemium.get_element_with_wait(driver, xpath_follower_scroll)
+            driver.execute_script("arguments[0].scrollIntoView(true);", element_follower_scroll)
+            sleep(3)
+
+        # スプレッドシートへの記録
+        sheet_id = '1Ni5JzhqCNdLTSW-izJzRh92VGPzPZRGuVlBpUl1p9bE'
+        sheet_name = 'followers'
+        sheet_range = 'A2:A'
+
+        follower_list = []
+        for follower in followers:
+            follower_list.append([follower])
+        sheet_range = sheet_range + str(len(follower_list) + 2)
+        # self.spread_sheet.append_row(sheet_id, sheet_name, follower_list)
+        self.spread_sheet.set_values(sheet_id, sheet_name, sheet_range, follower_list)
+
+        pass
+
+
+
 
 
 

@@ -64,3 +64,11 @@ create an admin account
 ```
 $ docker exec -it python ./manage.py createsuperuser
 ```
+
+## ECサイトを利用した管理画面の作成
+
+### 参考
+https://h-memo.com/django-oscar-ec/
+
+python manage.py migrate
+python manage.py collectstatic

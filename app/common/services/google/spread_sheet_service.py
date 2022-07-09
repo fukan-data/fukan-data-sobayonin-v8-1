@@ -20,22 +20,22 @@ class SpreadSheetService(GoogleService):
             'ss': ss
         }
 
-    def get_values(self, sheet_id, sheet_name, range):
+    def get_values(self, sheet_id, sheet_name, sheet_range):
         spread_sheet = self.open_spread_sheet(sheet_id)
         try:
-            values = spread_sheet['ss'].values_get(sheet_name + "!" + range)
-            values.update(sheet_id=sheet_id, sheet_name=sheet_name, range=range, title=spread_sheet['title'])
+            values = spread_sheet['ss'].values_get(sheet_name + "!" + sheet_range)
+            values.update(sheet_id=sheet_id, sheet_name=sheet_name, range=sheet_range, title=spread_sheet['title'])
             return Status.get_response(Status.SUCCESS, data=values)
 
         except Exception as e:
             self.logger.error('can not get values: ' + e.__str__())
             return Status.get_response(Status.GOOGLE_SPREAD_SHEET_ERROR)
 
-    def set_values(self, sheet_id, sheet_name, range, values):
+    def set_values(self, sheet_id, sheet_name, sheet_range, values):
         spread_sheet = self.open_spread_sheet(sheet_id)
         try:
             sheet = spread_sheet['ss'].worksheet(sheet_name)
-            sheet.update(range, values)
+            sheet.update(sheet_range, values)
             return Status.get_response(Status.SUCCESS)
 
         except Exception as e:

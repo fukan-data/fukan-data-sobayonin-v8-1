@@ -69,8 +69,33 @@ class Command(BaseCommand):
             if login_response.status != Status.SUCCESS.no:
                 raise SystemException(status_id=login_response.status)
 
+            # page_name = 'connectfam9'
+            # service.read_page(driver, page_name)
+
+            # max_count = 30
+            # key_word = '社長'
+            # select_hash_list = ['起業家', 'フリーランス', '経営者', '男', '変態', 'AV']
+            # service.search_tag(driver, key_word, select_hash_list, max_count)
+
+            # max_count = 100
+            # key_word = '女子会'
+            # select_hash_list = []
+            # service.search_tag(driver, key_word, select_hash_list, max_count)
+
             page_name = 'connectfam9'
-            service.read_page(driver, page_name)
+            service.search_followers(driver, page_name)
+
+
+
+
+
+
+
+
+
+# グラビアアイドル
+
+
 
             return
 
