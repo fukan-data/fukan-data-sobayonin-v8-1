@@ -61,13 +61,13 @@ class Command(BaseCommand):
 
             print('**********************')
 
-            service.selemium.shut_down_chrome()
-            driver = service.selemium.get_driver()
-
-            # ログイン
-            login_response = service.login(driver)
-            if login_response.status != Status.SUCCESS.no:
-                raise SystemException(status_id=login_response.status)
+            # service.selemium.shut_down_chrome()
+            # driver = service.selemium.get_driver()
+            #
+            # # ログイン
+            # login_response = service.login(driver)
+            # if login_response.status != Status.SUCCESS.no:
+            #     raise SystemException(status_id=login_response.status)
 
             # page_name = 'connectfam9'
             # service.read_page(driver, page_name)
@@ -77,13 +77,20 @@ class Command(BaseCommand):
             # select_hash_list = ['起業家', 'フリーランス', '経営者', '男', '変態', 'AV']
             # service.search_tag(driver, key_word, select_hash_list, max_count)
 
-            # max_count = 100
-            # key_word = '女子会'
-            # select_hash_list = []
+            max_count = 1000
+            key_word = 'カメラマンさんと繋がりたい'  # 女子会
+            page_name = 'takuhai3063'
+            select_hash_list = []
             # service.search_tag(driver, key_word, select_hash_list, max_count)
+            # service.search_tag_direct(page_name, key_word, select_hash_list, max_count)
+            service.search_tag_dev_mode(page_name, key_word, select_hash_list, max_count)
 
-            page_name = 'connectfam9'
-            service.search_followers(driver, page_name)
+
+
+
+
+            # page_name = 'connectfam9'
+            # service.search_followers(driver, page_name)
 
 
 

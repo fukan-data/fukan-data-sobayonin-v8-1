@@ -1,6 +1,9 @@
+from bs4 import BeautifulSoup
 import os
 from selenium.webdriver.common.keys import Keys
+import pyautogui
 import random
+import re
 from time import sleep
 import urllib.parse
 
@@ -11,19 +14,17 @@ from common.services.selenium_service import SeleniumService
 from common.services.components.system_exception import SystemException
 from common.services.components.decorator import retry as custom_retry
 from common.services.google.big_query import BigQueryService
-
+from common.services.pyautogui.pyautogui_service import PyAutoGuiService
 from common.services.google.spread_sheet_service import SpreadSheetService
 
-
 from selenium.webdriver.common.action_chains import ActionChains
-
-
 
 
 class InstagramService(CommonService):
     def __init__(self, logger=None, **kwargs):
         super().__init__(**kwargs)
         self.logger = self.get_logger() if logger is None else logger
+        self.py_auto_gui = PyAutoGuiService()
         self.selemium = SeleniumService()
         self.big_query = BigQueryService(logger=self.logger)
         self.spread_sheet = SpreadSheetService(logger=self.logger)
@@ -291,7 +292,374 @@ class InstagramService(CommonService):
 
         pass
 
+    def read_instagram_position(self, chrome_position):
+        try:
+            # # image_path = './common/services/pyautogui/image/chrome_left_up.png'
+            # chrome_left_up_path = './common/services/pyautogui/image/chrome_left_up.png'
+            # chrome_left_up = pyautogui.locateOnScreen(chrome_left_up_path)
+            # print('_______', chrome_left_up)
+            #
+            # chrome_right_bottom_path = './common/services/pyautogui/image/chrome_right_bottom.png'
+            # chrome_right_bottom = pyautogui.locateOnScreen(chrome_right_bottom_path)
+            # print('_______', chrome_right_bottom)
+            #
+            # chrome_search_path = './common/services/pyautogui/image/chrome_search.png'
+            # x, y = pyautogui.locateCenterOnScreen(chrome_search_path)
+            # print('_______', x, y)
+            #
+            # return {
+            #     'top': chrome_left_up.top,
+            #     'left': chrome_left_up.left,
+            #     'right': chrome_right_bottom.left + chrome_right_bottom.width,
+            #     'bottom': chrome_right_bottom.top + chrome_right_bottom.height,
+            #     'search': {
+            #         'x': x,
+            #         'y': y
+            #     }
+            # }
+            pass
 
+        except Exception as ex:
+            print("[read_chrome] 対象が見つかりませんでした。")
+            print(ex)
+
+    def search_tag_direct(self, page_name, key_word, select_hash_list, max_count):
+        thrower = ''
+        hash_list = []
+        current_url = ''
+
+        # スプレッドシートへの記録
+        sheet_id = '1Ni5JzhqCNdLTSW-izJzRh92VGPzPZRGuVlBpUl1p9bE'
+        sheet_name = '20220719'
+        sheet_range = 'A:G'
+        sheet_records = self.spread_sheet.get_values(sheet_id, sheet_name, sheet_range)
+
+        sheet_info = {}
+        for record in sheet_records.data['values']:
+            if record[0] != '取得元' and record[0] != 'error':
+                try:
+                    sheet_info[self.__get_page_id(record[4])] = {
+                        'count': int(record[1]) if record[1] else 0,
+                        'error': True if record[5] == '' else False
+                    }
+                except Exception as e:
+                    print('Error: ', record)
+
+        brower = 'edge'
+        image_path = './common/services/pyautogui/image/icon_edge_taskbar.png'
+        chrome_position = self.py_auto_gui.start_chrome(image_path, browser=brower)
+        print(chrome_position)
+
+        # instagram_position = self.read_instagram_position(chrome_position)
+
+        # url = 'https://www.instagram.com/' + page_name + '/'
+        # self.py_auto_gui.open_chrome(x, y, url)
+
+        # キーワードのページへ遷移
+        key_word_quote = urllib.parse.quote(key_word)
+        url = 'https://www.instagram.com/explore/tags/' + key_word_quote + '/'
+        x = chrome_position['search']['x']
+        y = chrome_position['search']['y']
+        # url = 'https://www.yosakoi-soran.jp/'
+        self.py_auto_gui.open_chrome(x, y, url)
+        sleep(10)
+
+        # 投稿画像をクリック
+        x = 300
+        y = 600
+        self.py_auto_gui.click(x, y)
+
+        # 開発モードを開く
+        self.py_auto_gui.open_develop_mode()
+
+        # 繰り返しする
+        count = 0
+        while count < max_count:
+            try:
+                scrape_count = 1
+
+                # url取得
+                x = chrome_position['search']['x']
+                y = chrome_position['search']['y']
+                current_url = self.py_auto_gui.copy_text(x, y)
+                print('current_url', current_url)
+
+                x = 800
+                y = 550
+                scroll_to = random.uniform(200, 0)
+                # self.py_auto_gui.dummy_scroll(x, y, random_x=10, random_y=10, scroll_to=scroll_to)
+                # article = self.py_auto_gui.copy_text(x, y)
+
+                x = 820
+                y = 230
+                article = self.py_auto_gui.copy_dom(x, y)
+                sleep(1 + 2 * random.random())
+                sleep(300)
+
+                # いいね画像ボタン
+                x = 697
+                y = 760
+                image_path = './common/services/pyautogui/image/edge_like.png'
+                self.py_auto_gui.click_image(image_path=image_path, x=x, y=y, random_x=5, random_y=5)
+
+                # 記事の読み込み
+                values = self.read_article(thrower, page_name, article, current_url, scrape_count)
+                print(values)
+
+                # スプレッドシートへの記録
+                self.spread_sheet.append_row(sheet_id, sheet_name, values)
+
+            except Exception as e:
+                print(e.__str__())
+                # スプレッドシートへの記録
+                values = ['error', '', '', '', '', '', e.__str__()]
+                self.spread_sheet.append_row(sheet_id, sheet_name, values)
+
+            # 次の画像ボタン
+            x = 1181
+            y = 569
+            image_path = './common/services/pyautogui/image/edge_next.png'
+            self.py_auto_gui.click_image(image_path=image_path, x=x, y=y, random_x=5, random_y=5)
+
+            sleep(4 + 3 * random.random())
+            count += 1
+
+    def search_tag_dev_mode(self, page_name, key_word, select_hash_list, max_count):
+        error_count = 0
+
+        for i in range(100):
+            try:
+                # スプレッドシートへの記録
+                sheet_id = '1Ni5JzhqCNdLTSW-izJzRh92VGPzPZRGuVlBpUl1p9bE'
+                sheet_name = '20220722'
+                sheet_range = 'A:G'
+                sheet_records = self.spread_sheet.get_values(sheet_id, sheet_name, sheet_range)
+
+                sheet_info = {}
+                read_count = 0
+                for record in sheet_records.data['values']:
+                    if record[0] != '取得元' and record[0] != 'error':
+                        try:
+                            sheet_info[self.__get_page_id(record[4])] = {
+                                'count': int(record[1]) if record[1] else 0,
+                                'error': True if record[5] == '' else False
+                            }
+                            read_count += 1
+                        except Exception as e:
+                            print('Error: ', record)
+
+                # 初回のみブラウザ起動とインスタの投稿画面を表示
+                if i == 0:
+                    brower = 'edge'
+                    image_path = './common/services/pyautogui/image/icon_edge_taskbar.png'
+                    chrome_position = self.py_auto_gui.start_chrome(image_path, browser=brower)
+                    print(chrome_position)
+
+                    # 開発モードを開く
+                    x = 790
+                    y = 130
+                    self.py_auto_gui.open_develop_mode(x=x, y=y, type='pc')
+
+                    # キーワードのページへ遷移
+                    key_word_quote = urllib.parse.quote(key_word)
+                    url = 'https://www.instagram.com/explore/tags/' + key_word_quote + '/'
+                    x = chrome_position['search']['x']
+                    y = chrome_position['search']['y']
+                    self.py_auto_gui.open_chrome(x, y, url)
+                    sleep(10)
+
+                    # 画面をクリック
+                    x = 200
+                    y = 300
+                    self.py_auto_gui.click(x, y)
+                    sleep(0.5)
+
+                    # 投稿画像をクリック
+                    x = 200
+                    y = 550
+                    self.py_auto_gui.click(x, y)
+                    sleep(3)
+
+                # 繰り返しする
+                count = 0
+                while count < max_count:
+                    skip_count = 1
+                    try:
+                        if count != 0 and count % 31 == 0:
+                            print('sleep time')
+                            sleep(int(120 + 150 * random.random()))
+
+                        # 連続5回の失敗で終了
+                        if error_count > 4:
+                            max_count = 0
+                            continue
+
+                        scrape_count = 1
+
+                        # url取得
+                        x = chrome_position['search']['x']
+                        y = chrome_position['search']['y']
+                        current_url = self.py_auto_gui.copy_text(x, y)
+                        print('current_url', current_url)
+
+                        # URLが開いていたときの回避
+                        x = 900
+                        y = 350
+                        pyautogui.moveTo(x, y, duration=0.25)
+                        pyautogui.click()
+
+                        throw_id = self.get_throw_id(current_url)
+                        print(throw_id)
+
+                        # throw_idが未登録の場合
+                        if throw_id not in sheet_info:
+                            x = 824
+                            y = 141
+                            article = self.py_auto_gui.copy_dom(x, y)
+                            sleep(1 + 2 * random.random())
+                            sleep(3)
+                            # print(article)
+
+                            self.save_article_dom(throw_id, article)
+
+                            # 記事の読み込み
+                            values = self.read_article_dom(key=throw_id, scrape_count=scrape_count, current_url=current_url)
+                            print(values)
+
+                            if values[0] == '':
+                                raise Exception('Cannot get thrower from article')
+
+                            # いいね画像ボタン
+                            x = 227
+                            y = 499
+                            image_path = './common/services/pyautogui/image/edge_like.png'
+                            self.py_auto_gui.click_image_curve(image_path=image_path, x=x, y=y)
+                            # self.py_auto_gui.click_image(image_path=image_path, x=x, y=y, random_x=5, random_y=5)
+
+                            # # 記事の読み込み
+                            # values = self.read_article(thrower, page_name, article, current_url, scrape_count)
+                            # print(values)
+
+                            # スプレッドシートへの記録
+                            self.spread_sheet.append_row(sheet_id, sheet_name, values)
+                            count += 1
+                            error_count = 0
+                        else:
+                            # 更新処理回数分に達するまでは20回ずつスキップする
+                            if read_count > 0:
+                                read_count -= 20
+                                skip_count = 20
+                            else:
+                                skip_count = 1
+
+                    except Exception as e:
+                        print(e.__str__())
+                        # スプレッドシートへの記録
+                        values = ['error', '', '', '', '', '', e.__str__()]
+                        self.spread_sheet.append_row(sheet_id, sheet_name, values)
+                        count += 1
+                        error_count += 1
+
+                    # count += 1
+                    # continue
+
+                    # 次の画像ボタン
+                    x = 716
+                    y = 405
+                    self.py_auto_gui.click_image_curve(x=x, y=y, count=skip_count)
+                    # image_path = './common/services/pyautogui/image/edge_next.png'
+                    # self.py_auto_gui.click_image(image_path=image_path, x=x, y=y, random_x=5, random_y=5)
+
+                    sleep(4 + 3 * random.random())
+
+            except Exception as e:
+                print(e.__str__())
+
+
+    def get_article_dom(self, file_path):
+        try:
+            with open(file_path, mode='r', encoding='UTF-8') as fp:
+                return fp.read()
+        except Exception as e:
+            return None
+
+    def save_article_dom(self, key, article):
+        # ファイルの保存
+        os.makedirs('common/services/pyautogui/dom', exist_ok=True)
+        file_path = 'common/services/pyautogui/dom/article_' + key + '.txt'
+        if not os.path.exists(file_path):
+            with open(file_path, mode='w', encoding='UTF-8') as f:
+                f.write(article)
+
+    def read_article_dom(self, key=None, article=None, scrape_count=1, current_url=''):
+        hash_list = []
+        like = 'いいね'
+        thrower = ''
+
+        if article is None:
+            os.makedirs('common/services/pyautogui/dom', exist_ok=True)
+            file_path = 'common/services/pyautogui/dom/article_' + key + '.txt'
+            article = self.get_article_dom(file_path)
+
+        # BeautifulSoup
+        soup = BeautifulSoup(article, 'html.parser')
+        # article
+        for element_article in soup.find_all('article'):
+            for element_a in element_article.find_all('a'):
+                element_a_text = element_a.text
+                if '#' in element_a_text:
+                    hash_list.append(element_a_text)
+
+                for element_a_img in element_a.find_all('img'):
+                    element_a_alt = element_a_img.get('alt')
+                    # プロフィール写真を含むa>imgがあること、かつ、hash_listに未登録の最初の人であること
+                    if element_a_alt and 'のプロフィール写真' in element_a_alt and len(hash_list) == 0:
+                        thrower = element_a_alt.replace('のプロフィール写真', '')
+
+        # スプレッドシートへの記録
+        return [thrower, scrape_count, like, '', current_url, ', '.join(hash_list), '']
+
+    def get_throw_id(self, url):
+        throw_id = url.replace('https://www.instagram.com/p/', '')
+        return throw_id.replace('/', '')
+
+    def read_article(self, thrower, page_name, article, current_url, scrape_count):
+        try:
+            hash_list = []
+            like = 'いいね'
+            for article in article.split('のプロフィール写真'):
+                lines = article.splitlines()
+                person = lines[0] or lines[1]
+
+                # 不要ページをジャンプ
+                if page_name in article:
+                    continue
+
+                if 'Meta' == person:
+                    continue
+
+                if thrower == '':
+                    thrower = lines[0] or lines[1]
+
+                # 投稿者の記事選択
+                if thrower == person:
+                    lines.pop()
+                    lines.pop()
+
+                    thrower_article = '\n'.join(lines)
+                    for hash_line in re.findall('#.*', thrower_article):
+                        for hash in hash_line.split(' '):
+                            if '#' in hash:
+                                hash_list.append(hash)
+
+            # スプレッドシートへの記録
+            return [thrower, scrape_count, like, '', current_url, ', '.join(hash_list), '']
+        except Exception as e:
+            id = current_url.replace('https://www.instagram.com/p/', '').replace('/', '')
+            path_w = 'files/article_{}.png'.format(id)
+            with open(path_w, mode='w') as f:
+                f.write(article)
+            raise(e)
 
 
 
