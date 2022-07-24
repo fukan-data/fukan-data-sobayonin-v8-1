@@ -1,0 +1,231 @@
+{% extends "base_common.html" %}
+{% load number_tags %}
+
+{% block content %}
+<div class="container-fluid">
+
+    <!-- Page Heading -->
+    <h1 class="h3 mb-2 text-gray-800">Schedule Task</h1>
+    <p class="mb-4">実行予定のタスク一覧</p>
+
+    <!-- DataTales Example -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">DataTables Example</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <div id="dataTable_wrapper" class="dataTables_wrapper dt-bootstrap4">
+                    <div class="row">
+                        <div class="col-sm-12 col-md-6">
+                            <div class="dataTables_length" id="dataTable_length">
+                                <label>Show
+                                    <select name="dataTable_length" aria-controls="dataTable" class="custom-select custom-select-sm form-control form-control-sm">
+                                        <option value="10">10</option>
+                                        <option value="25">25</option>
+                                        <option value="50">50</option>
+                                        <option value="100">100</option>
+                                    </select> entries</label>
+                            </div>
+                        </div>
+                        <div class="col-sm-12 col-md-6">
+                            <div id="dataTable_filter" class="dataTables_filter">
+                                <label>Search:
+                                    <input type="search" class="form-control form-control-sm" placeholder="" aria-controls="dataTable"></label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-12" id="task-table">
+                            <table class="table table-bordered dataTable table-striped" width="100%" cellspacing="0" role="grid" aria-describedby="dataTable_info" style="width: 100%;">
+                                <thead>
+                                    <tr role="row">
+                                        <th class="sorting" tabindex="0" aria-controls="dataTable" rowspan="1" colspan="1" aria-label="Name: activate to sort column ascending" style="width: 143px;">task_service</th>
+                                        <th class="sorting" tabindex="0" aria-controls="dataTable" rowspan="1" colspan="1" aria-label="Position: activate to sort column ascending" style="width: 222px;">task_service_id</th>
+                                        <th class="sorting sorting_desc" tabindex="0" aria-controls="dataTable" rowspan="1" colspan="1" aria-label="Office: activate to sort column ascending" aria-sort="descending" style="width: 101px;">task_name</th>
+                                        <th class="sorting" tabindex="0" aria-controls="dataTable" rowspan="1" colspan="1" aria-label="Age: activate to sort column ascending" style="width: 42px;">task_category</th>
+                                        <th class="sorting" tabindex="0" aria-controls="dataTable" rowspan="1" colspan="1" aria-label="Start date: activate to sort column ascending" style="width: 95px;">task_status</th>
+                                        <th class="sorting" tabindex="0" aria-controls="dataTable" rowspan="1" colspan="1" aria-label="Salary: activate to sort column ascending" style="width: 84px;">reserve_start</th>
+                                        <th class="sorting" tabindex="0" aria-controls="dataTable" rowspan="1" colspan="1" aria-label="Salary: activate to sort column ascending" style="width: 84px;">notification_emails</th>
+                                        <th class="sorting" tabindex="0" aria-controls="dataTable" rowspan="1" colspan="1" aria-label="Salary: activate to sort column ascending" style="width: 84px;">notification_slack_url</th>
+                                        <th class="sorting" tabindex="0" aria-controls="dataTable" rowspan="1" colspan="1" aria-label="Salary: activate to sort column ascending" style="width: 84px;">task_message</th>
+                                        <th class="sorting" tabindex="0" aria-controls="dataTable" rowspan="1" colspan="1" aria-label="Salary: activate to sort column ascending" style="width: 84px;"></th>
+                                    </tr>
+                                </thead>
+                                <tfoot>
+                                    <tr>
+                                        <th rowspan="1" colspan="1">task_service</th>
+                                        <th rowspan="1" colspan="1">task_service_id</th>
+                                        <th rowspan="1" colspan="1">task_name</th>
+                                        <th rowspan="1" colspan="1">task_category</th>
+                                        <th rowspan="1" colspan="1">task_status</th>
+                                        <th rowspan="1" colspan="1">reserve_start</th>
+                                        <th rowspan="1" colspan="1">notification_emails</th>
+                                        <th rowspan="1" colspan="1">notification_slack_url</th>
+                                        <th rowspan="1" colspan="1">task_message</th>
+                                        <th rowspan="1" colspan="1"></th>
+                                    </tr>
+                                </tfoot>
+                                <tbody>
+                                    {% for member in object_list %}
+                                        {% if forloop.counter|to_remainder:2 == 1 %}
+                                            <tr class="odd">
+                                        {% else %}
+                                            <tr class="even">
+                                        {% endif %}
+                                                <td class="">{{ member.task_service }}</td>
+                                                <td class="">{{ member.task_service_id }}</td>
+                                                <td class="sorting_1">{{ member.task_name }}</td>
+                                                <td>{{ member.task_category }}</td>
+                                                <td>{{ member.task_status }}</td>
+                                                <td>{{ member.reserve_start }}</td>
+                                                <td>{{ member.notification_emails }}</td>
+                                                <td>{{ member.notification_slack_url }}</td>
+                                                <td>{{ member.task_message }}</td>
+                                                <td>{{ forloop.counter|to_remainder:8 }}</td>
+                                            </tr>
+                                    {% endfor %}
+
+
+                                    <tr v-for="(task, index) in tasks" v-bind:key="task.task_id">
+                                        <th>[[task.task_service]]</th>
+                                        <td>[[task.task_service_id]]</td>
+                                        <td>[[task.task_name]]</td>
+                                        <td>[[task.task_category]]</td>
+                                        <td>[[task.task_status]]</td>
+                                        <td>[[task.reserve_start]]</td>
+                                        <td>[[task.notification_emails]]</td>
+                                        <td>[[task.notification_slack_url]]</td>
+                                        <td>[[task.task_message]]</td>
+                                        <td></td>
+                                    </tr>
+
+
+
+
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+
+
+
+
+
+
+<script>
+
+// 書籍オブジェクト配列
+const tasks = [
+  {
+    task_id: 101,
+    task_service: 'sns',
+    task_service_id: 1,
+    task_name: 'facebook_announcement',
+    task_category: 0,
+    task_status: 0,
+    reserve_start: null,
+    notification_emails: 'fukan.data.labo@gmail.com',
+    notification_slack_url: 'https://hooks.slack.com/services/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',
+    task_message: '',
+  },
+  {
+    task_id: 102,
+    task_service: 'sns',
+    task_service_id: 1,
+    task_name: 'twitter_announcement',
+    task_category: 0,
+    task_status: 0,
+    reserve_start: null,
+    notification_emails: 'fukan.data.labo@gmail.com',
+    notification_slack_url: 'https://hooks.slack.com/services/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',
+    task_message: '',
+  },
+]
+
+// テーブルのヘッダー配列
+const headers = [
+  'task_id',
+  'task_service',
+  'task_service_id',
+  'task_name',
+  'task_category',
+  'task_status',
+  'reserve_start',
+  'notification_emails',
+  'notification_slack_url',
+  'task_message',
+];
+
+// Vueインスタンス
+Vue.createApp({
+  delimiters: ['[[', ']]'],
+  data: function() {
+    return {
+      headers: headers,
+      tasks: [],
+    }
+  },
+  methods: {
+    reverseMessage() {
+
+    }
+  },
+  mounted: function() {
+    this.tasks = tasks
+  }
+}).mount('#task-table')
+
+</script>
+
+
+
+
+
+
+                    <div class="row">
+                        <div class="col-sm-12 col-md-5">
+                            <div class="dataTables_info" id="dataTable_info" role="status" aria-live="polite">Showing 1 to 10 of 57 entries
+                            </div>
+                        </div>
+                        <div class="col-sm-12 col-md-7">
+                            <div class="dataTables_paginate paging_simple_numbers" id="dataTable_paginate">
+                                <ul class="pagination">
+                                    <li class="paginate_button page-item previous disabled" id="dataTable_previous">
+                                        <a href="#" aria-controls="dataTable" data-dt-idx="0" tabindex="0" class="page-link">Previous</a>
+                                    </li>
+                                    <li class="paginate_button page-item active">
+                                        <a href="#" aria-controls="dataTable" data-dt-idx="1" tabindex="0" class="page-link">1</a>
+                                    </li>
+                                    <li class="paginate_button page-item ">
+                                        <a href="#" aria-controls="dataTable" data-dt-idx="2" tabindex="0" class="page-link">2</a>
+                                    </li>
+                                    <li class="paginate_button page-item ">
+                                        <a href="#" aria-controls="dataTable" data-dt-idx="3" tabindex="0" class="page-link">3</a>
+                                    </li>
+                                    <li class="paginate_button page-item ">
+                                        <a href="#" aria-controls="dataTable" data-dt-idx="4" tabindex="0" class="page-link">4</a>
+                                    </li>
+                                    <li class="paginate_button page-item ">
+                                        <a href="#" aria-controls="dataTable" data-dt-idx="5" tabindex="0" class="page-link">5</a>
+                                    </li>
+                                    <li class="paginate_button page-item ">
+                                        <a href="#" aria-controls="dataTable" data-dt-idx="6" tabindex="0" class="page-link">6</a>
+                                    </li>
+                                    <li class="paginate_button page-item next" id="dataTable_next">
+                                        <a href="#" aria-controls="dataTable" data-dt-idx="7" tabindex="0" class="page-link">Next</a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+
