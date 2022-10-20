@@ -49,7 +49,7 @@ INSTALLED_APPS = [
     # ここから
     "scheduler.apps.SchedulerConfig",
     "common.apps.CommonConfig",
-    "connectfam.apps.ConnectfamConfig",
+    # "connectfam.apps.ConnectfamConfig",
 
     # # 以下の部分を追加
     # 'django.contrib.sites',

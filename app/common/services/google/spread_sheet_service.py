@@ -20,6 +20,26 @@ class SpreadSheetService(GoogleService):
             'ss': ss
         }
 
+    def update_sheet(self, sheet_id, sheet_name, sheet_range, records):
+        spread_sheet = self.open_spread_sheet(sheet_id)
+
+        try:
+            try:
+                sheet = spread_sheet['ss'].worksheet(sheet_name)
+            except Exception as e:
+                sheet = spread_sheet['ss'].add_worksheet(title=sheet_name, rows=len(records), cols=len(records[0]))
+
+            sheet.update(sheet_range, records)
+
+            return Status.get_response(Status.SUCCESS)
+
+        except Exception as e:
+            self.logger.error('can not create sheet: ' + e.__str__())
+            return Status.get_response(Status.GOOGLE_SPREAD_SHEET_ERROR)
+
+
+
+
     def get_values(self, sheet_id, sheet_name, sheet_range):
         spread_sheet = self.open_spread_sheet(sheet_id)
         try:

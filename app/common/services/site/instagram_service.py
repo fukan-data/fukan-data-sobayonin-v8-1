@@ -575,6 +575,26 @@ class InstagramService(CommonService):
             except Exception as e:
                 print(e.__str__())
 
+    def search_tag_android_mode(self, page_name, key_word, select_hash_list, max_count):
+
+        # This Python file uses the following encoding: utf-8
+        # pip install android-auto-play-opencv
+        import android_auto_play_opencv as am
+        adbpath = 'platform-tools\\'
+
+        aapo = am.AapoManager(adbpath)
+        while True:
+            # 画面キャプチャ
+            aapo.screencap()
+
+
+
+
+
+
+
+
+
 
     def get_article_dom(self, file_path):
         try:

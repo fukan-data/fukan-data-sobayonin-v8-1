@@ -86,6 +86,8 @@ class Command(BaseCommand):
             service.search_tag_dev_mode(page_name, key_word, select_hash_list, max_count)
 
 
+            service.search_tag_android_mode(page_name, key_word, select_hash_list, max_count)
+
 
 
 

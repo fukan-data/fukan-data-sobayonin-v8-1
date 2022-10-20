@@ -48,19 +48,23 @@ class SeleniumService(CommonService):
         options.add_argument('--window-size=1200x600')
         return webdriver.Chrome(chromedriver_path, options=options)
 
-    @retry(delay=1, tries=30, backoff=2, max_delay=4)
+    # @retry(delay=1, tries=30, backoff=2, max_delay=4)
     def get_element_with_wait(self, driver, xpath, is_multiple=False):
         if is_multiple:
-            return driver.find_elements_by_xpath(xpath)
+            # return driver.find_elements_by_xpath(xpath)
+            return driver.find_elements(By.XPATH, xpath)
         else:
-            return driver.find_element_by_xpath(xpath)
+            # return driver.find_element_by_xpath(xpath)
+            return driver.find_element(By.XPATH, xpath)
 
     @retry(delay=1, tries=5, backoff=2, max_delay=4)
     def get_element_with_wait_short(self, driver, xpath, is_multiple=False):
         if is_multiple:
-            return driver.find_elements_by_xpath(xpath)
+            # return driver.find_elements_by_xpath(xpath)
+            return driver.find_elements(By.XPATH, xpath)
         else:
-            return driver.find_element_by_xpath(xpath)
+            # return driver.find_element_by_xpath(xpath)
+            return driver.find_element(By.XPATH, xpath)
 
     @retry(delay=1, tries=3)
     def save_image(self, driver, xpath, stock_dir='system', width=None, height=None):
@@ -157,6 +161,15 @@ class SeleniumService(CommonService):
         sleep(3)
 
         return driver
+
+    # 一定のURLが対応するまで待機
+    def is_current_url(self, driver, target_url, max_count=30):
+        count = 0
+        while count < max_count:
+            if driver.current_url == target_url:
+                return True
+            sleep(1)
+        return False
 
     def test(self):
         driver = self.login_google()
